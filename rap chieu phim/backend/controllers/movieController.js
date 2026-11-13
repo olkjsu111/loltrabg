@@ -236,10 +236,127 @@ async function deleteMovie(req, res, next) {
   }
 }
 
+/**
+ * Lấy danh sách đánh giá & điểm xếp hạng của phim
+ */
+async function getMovieReviews(req, res, next) {
+  try {
+    const { id } = req.params;
+    const reviews = await db.query(
+      `SELECT * FROM movie_reviews WHERE movie_id = ? ORDER BY created_at DESC`,
+      [id]
+    );
+
+    const totalReviews = reviews.length;
+    const averageRating =
+      totalReviews > 0
+        ? Math.round((reviews.reduce((acc, r) => acc + Number(r.rating || 5), 0) / totalReviews) * 10) / 10
+        : 5.0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        reviews,
+        totalReviews,
+        averageRating,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Gửi đánh giá & bình luận phim mới (Khách hàng đã đăng nhập)
+ */
+async function addMovieReview(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+    const userId = req.user?.id;
+    const userName = req.user?.name || req.user?.username || 'Khách hàng';
+
+    const numRating = parseInt(rating, 10);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Điểm đánh giá phải từ 1 đến 5 sao.',
+      });
+    }
+
+    if (!comment || typeof comment !== 'string' || comment.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập nội dung nhận xét phim.',
+      });
+    }
+
+    // Làm sạch comment, loại bỏ thẻ HTML tiềm ẩn mã độc XSS
+    const cleanComment = comment.replace(/<[^>]*>?/gm, '').trim();
+    if (!cleanComment) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nội dung nhận xét phim chứa ký tự không hợp lệ.',
+      });
+    }
+
+    // Chống spam: Kiểm tra xem người dùng có vừa gửi đánh giá cho phim này trong vòng 60s không
+    const recentReviews = await db.query(
+      `SELECT id, created_at FROM movie_reviews WHERE movie_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1`,
+      [id, userId]
+    );
+    if (recentReviews && recentReviews.length > 0) {
+      const lastCreated = new Date(recentReviews[0].created_at).getTime();
+      if (!isNaN(lastCreated) && Date.now() - lastCreated < 60000) {
+        return res.status(429).json({
+          success: false,
+          message: 'Bạn vừa gửi đánh giá cho phim này. Vui lòng chờ 1 phút trước khi gửi lại.',
+        });
+      }
+    }
+
+    // Xác thực nghiêm ngặt: Kiểm tra xem người dùng có vé hợp lệ/đã xem rạp phim này hay không
+    const customerId = req.user?.customerId || req.user?.id;
+    const ticketCheck = await db.query(
+      `SELECT t.id FROM tickets t 
+       JOIN screening_schedules s ON t.screening_id = s.id 
+       JOIN bookings b ON t.booking_id = b.id 
+       WHERE s.movie_id = ? AND (b.customer_id = ? OR t.customer_id = ? OR b.customer_id = ? OR t.customer_id = ?) AND (b.status = 'paid' OR t.status IN ('active', 'used'))
+       LIMIT 1`,
+      [id, customerId, customerId, userId, userId]
+    );
+    const isVerifiedBuyer = ticketCheck && ticketCheck.length > 0 ? 1 : 0;
+
+    const result = await db.query(
+      `INSERT INTO movie_reviews (movie_id, user_id, user_name, rating, comment, is_verified_buyer) VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, userId, userName, numRating, cleanComment, isVerifiedBuyer]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Cảm ơn bạn đã gửi đánh giá phim!',
+      data: {
+        id: result?.insertId,
+        movie_id: parseInt(id, 10),
+        user_id: userId,
+        user_name: userName,
+        rating: numRating,
+        comment: cleanComment,
+        is_verified_buyer: isVerifiedBuyer,
+        created_at: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getMovies,
   getMovieById,
   createMovie,
   updateMovie,
   deleteMovie,
+  getMovieReviews,
+  addMovieReview,
 };
