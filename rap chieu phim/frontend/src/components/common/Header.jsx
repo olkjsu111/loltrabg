@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
   Film,
   Shield,
@@ -16,6 +17,8 @@ import {
   X,
   Utensils,
   Ticket,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export function Header({
@@ -27,6 +30,7 @@ export function Header({
   onOpenProfile,
 }) {
   const { user, isAuthenticated, logout, notifications, unreadNotifCount, isManager, isStaff, isTechnician } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -45,7 +49,7 @@ export function Header({
                 <Film className="w-5 h-5 text-white" />
               </div>
               <div className="shrink-0">
-                <span className="text-xl font-extrabold tracking-wider bg-gradient-to-r from-white via-slate-100 to-ruby-400 bg-clip-text text-transparent whitespace-nowrap">
+                <span className="text-xl font-extrabold tracking-wider dark:bg-gradient-to-r dark:from-white dark:via-slate-100 dark:to-ruby-400 dark:bg-clip-text dark:text-transparent text-slate-900 whitespace-nowrap">
                   NIGHT <span className="text-ruby-500 font-black">MOVIE</span>
                 </span>
                 <span className="block text-[10px] tracking-widest text-slate-400 uppercase font-semibold whitespace-nowrap">
@@ -127,6 +131,20 @@ export function Header({
                 <span className="whitespace-nowrap">🍿 Gọi Món Tận Ghế</span>
               </button>
             </div>
+            {/* Theme Toggle Button (Light / Dark Mode) */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-cinema-850 hover:bg-cinema-800 text-slate-300 hover:text-white border border-cinema-700/50 relative transition-all duration-300 group shadow-sm flex items-center justify-center shrink-0"
+              title={isDark ? 'Chuyển sang giao diện Sáng (Light Mode)' : 'Chuyển sang giao diện Tối (Dark Mode)'}
+              aria-label="Chuyển đổi giao diện Sáng / Tối"
+            >
+              {isDark ? (
+                <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform duration-300" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-600 group-hover:-rotate-12 transition-transform duration-300" />
+              )}
+            </button>
+
             {/* Notification Bell */}
             {isAuthenticated && (
               <div className="relative">
@@ -222,7 +240,7 @@ export function Header({
       {/* Mobile Drawer Navigation */}
       {isMobileMenuOpen && (
         <div className="lg:hidden bg-cinema-950/95 border-b border-cinema-700/80 px-4 py-4 space-y-3 animate-fade-in backdrop-blur-xl">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false);
@@ -239,7 +257,24 @@ export function Header({
               }}
               className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5"
             >
-              <Utensils className="w-4 h-4 text-emerald-400" /> Gọi Bắp Nước
+              <Utensils className="w-4 h-4 text-emerald-400" /> Gọi Bắp
+            </button>
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-cinema-850 hover:bg-cinema-800 border border-cinema-700/60 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+              title={isDark ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối'}
+            >
+              {isDark ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400" />
+                  <span>Sáng</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-indigo-600" />
+                  <span>Tối</span>
+                </>
+              )}
             </button>
           </div>
 

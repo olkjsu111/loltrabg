@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
   LayoutDashboard,
   Film,
@@ -18,11 +19,14 @@ import {
   Utensils,
   Boxes,
   DollarSign,
-  Key
+  Key,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export function AdminLayout({ currentTab, onSelectTab, children }) {
   const { user, logout, isAdmin, isManager, isStaff, isTechnician } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard & Tổng quan', icon: LayoutDashboard, roles: ['admin', 'manager'] },
@@ -73,14 +77,28 @@ export function AdminLayout({ currentTab, onSelectTab, children }) {
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-cinema-900/90 border-r border-cinema-700/60 flex flex-col shrink-0">
         {/* Sidebar Header */}
-        <div className="p-5 border-b border-cinema-700/60 flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-ruby-600/20 text-ruby-400 border border-ruby-500/30">
-            <Shield className="w-5 h-5" />
+        <div className="p-5 border-b border-cinema-700/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-ruby-600/20 text-ruby-400 border border-ruby-500/30">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-black text-sm text-white tracking-wider">HỆ THỐNG VẬN HÀNH</div>
+              <div className="text-[10px] text-gold-400 font-bold uppercase">{user?.role} PORTAL</div>
+            </div>
           </div>
-          <div>
-            <div className="font-black text-sm text-white tracking-wider">HỆ THỐNG VẬN HÀNH</div>
-            <div className="text-[10px] text-gold-400 font-bold uppercase">{user?.role} PORTAL</div>
-          </div>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-xl bg-cinema-850 hover:bg-cinema-800 text-slate-300 hover:text-white border border-cinema-700/60 transition-colors shadow-sm"
+            title={isDark ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối'}
+            aria-label="Chuyển đổi giao diện"
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-600" />
+            )}
+          </button>
         </div>
 
         {/* User Card */}

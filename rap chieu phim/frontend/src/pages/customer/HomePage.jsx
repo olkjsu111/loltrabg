@@ -7,6 +7,7 @@ import {
   Star,
   Film,
   Flame,
+  ChevronLeft,
   ChevronRight,
   Ticket,
   Video,
@@ -32,7 +33,7 @@ const CINEMATIC_TECHNOLOGIES = [
     shortCode: 'IMAX',
     tagline: 'Chuẩn mực hình ảnh điện ảnh thế hệ mới',
     description: 'Màn hình cong khổng lồ 22m x 16m kết hợp hệ thống máy chiếu Dual-Laser kép, mang lại độ tương phản vô cực và hình ảnh sắc nét vượt trội.',
-    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1200',
+    image: '/images/imax.jpg',
     fallbackImage: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=1200',
     badgeStyle: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
     iconStyle: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
@@ -55,7 +56,7 @@ const CINEMATIC_TECHNOLOGIES = [
     shortCode: '4DX',
     tagline: 'Nhập vai 5 giác quan cùng 21 hiệu ứng thời tiết',
     description: 'Ghế chuyển động đa chiều 3 bậc tự do đồng bộ nhịp phim, hòa cùng hiệu ứng gió bão, sương mù, mưa tuyết và mùi hương môi trường sống động.',
-    image: 'https://images.unsplash.com/photo-1595769816263-9b910be24d5f?q=80&w=1200',
+    image: '/images/4dx.jpg',
     fallbackImage: 'https://images.unsplash.com/photo-1574267432553-4b4628081c31?q=80&w=1200',
     badgeStyle: 'bg-ruby-500/20 text-ruby-300 border-ruby-500/40',
     iconStyle: 'bg-ruby-500/20 text-ruby-400 border-ruby-500/30',
@@ -138,99 +139,270 @@ export function HomePage({
     return matchTab && matchGenre;
   });
 
-  const spotlightMovie = movies.find((m) => m.id === 1) || movies[0];
+  // Tạo danh sách 3 phim cho banner Hero Spotlight theo đúng thứ tự:
+  // 1. Dune, 2. Godzilla x Kong, 3. Conan (tìm theo TÊN, không phân biệt hoa thường / dấu gạch nối)
+  const spotlightMovies = React.useMemo(() => {
+    if (!movies || movies.length === 0) return [];
+
+    const normalizeStr = (str) =>
+      (str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[-–—]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const TARGET_KEYS = ['dune', 'godzilla x kong', 'conan'];
+    const matchedList = [];
+
+    for (const key of TARGET_KEYS) {
+      const found = movies.find((m) => normalizeStr(m.name).includes(key));
+      if (found && !matchedList.some((m) => m.id === found.id)) {
+        matchedList.push(found);
+      }
+    }
+
+    if (matchedList.length === 0 && movies.length > 0) {
+      return [movies[0]];
+    }
+
+    return matchedList;
+  }, [movies]);
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [timerKey, setTimerKey] = useState(0);
+  const [isTabHidden, setIsTabHidden] = useState(false);
+
+  // Lắng nghe trạng thái tab trình duyệt ẩn/hiện
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabHidden(document.visibilityState === 'hidden');
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Điều kiện tạm dừng tự động chuyển banner:
+  // - Đang mở modal Trailer hoặc modal Chi tiết phim
+  // - Tab trình duyệt đang ẩn
+  // - Danh sách phim chỉ có 1 phim hoặc không có phim
+  const isPaused =
+    isTabHidden ||
+    trailerData.isOpen ||
+    Boolean(detailMovie) ||
+    spotlightMovies.length <= 1;
+
+  // Tự động chuyển động qua lại giữa các phim mỗi 6 giây liên tục
+  useEffect(() => {
+    if (isPaused) return;
+
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % spotlightMovies.length);
+      setTimerKey((k) => k + 1);
+    }, 6000);
+
+    return () => clearInterval(timer);
+  }, [activeIndex, isPaused, spotlightMovies.length]);
+
+  // Preload nhẹ ảnh poster của các phim trong banner để khi chuyển động không bị chớp trắng
+  useEffect(() => {
+    if (spotlightMovies.length > 1) {
+      spotlightMovies.forEach((m) => {
+        if (m.poster) {
+          const img = new Image();
+          img.src = m.poster;
+        }
+      });
+    }
+  }, [spotlightMovies]);
+
+  // Chỉ số phim an toàn và phim hiện tại
+  const safeIndex = spotlightMovies.length > 0 ? activeIndex % spotlightMovies.length : 0;
+  const currentSpotlightMovie = spotlightMovies[safeIndex] || null;
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    setActiveIndex((prev) => (prev - 1 + spotlightMovies.length) % spotlightMovies.length);
+    setTimerKey((k) => k + 1);
+  };
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    setActiveIndex((prev) => (prev + 1) % spotlightMovies.length);
+    setTimerKey((k) => k + 1);
+  };
+
+  const handleSelectIndex = (idx) => {
+    setActiveIndex(idx);
+    setTimerKey((k) => k + 1);
+  };
 
   const genres = ['all', 'Hành động', 'Khoa học viễn tưởng', 'Hoạt hình', 'Tâm lý', 'Kinh dị', 'Gia đình'];
 
   return (
     <div className="min-h-screen pb-20 space-y-12">
-      {/* Hero Spotlight Banner */}
-      {spotlightMovie && (
-        <div className="relative w-full h-[480px] sm:h-[530px] overflow-hidden rounded-3xl mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cinema-700/60 shadow-2xl">
-            {/* Background Backdrop */}
-            <img
-              src={spotlightMovie.poster}
-              alt={spotlightMovie.name}
-              className="w-full h-full object-cover object-center scale-105 filter brightness-75 transition-transform duration-1000 hover:scale-100"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = 'https://image.tmdb.org/t/p/w780/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg';
-              }}
-            />
-            {/* Gradient Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-cinema-950 via-cinema-950/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-cinema-950 via-cinema-950/80 to-transparent" />
-
-            {/* Hero Content */}
-            <div className="absolute bottom-0 left-0 p-6 sm:p-10 lg:p-12 max-w-3xl lg:max-w-4xl space-y-3.5 sm:space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-ruby-600 text-white font-black text-xs uppercase tracking-wider flex items-center gap-1 shadow-glow-red">
-                  <Flame className="w-3.5 h-3.5 fill-white" /> PHIM BOM TẤN NỔI BẬT
-                </span>
-                <span className="px-2.5 py-1 rounded-full bg-cinema-800/80 text-amber-400 border border-amber-500/40 text-xs font-bold font-mono">
-                  {spotlightMovie.format}
-                </span>
-                <span className="px-2.5 py-1 rounded-full bg-cinema-800/80 text-slate-300 text-xs font-semibold">
-                  {spotlightMovie.age_rating}
-                </span>
-              </div>
-
-              <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight drop-shadow-md">
-                {spotlightMovie.name}
-              </h1>
-
-              <p className="text-xs sm:text-sm text-slate-300 line-clamp-3 leading-relaxed">
-                {spotlightMovie.description}
-              </p>
-
-              <div className="flex items-center gap-4 text-xs text-slate-300 font-medium">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4 text-ruby-400" /> {spotlightMovie.duration} phút
-                </span>
-                <span>•</span>
-                <span>{spotlightMovie.genre}</span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-2">
-                <button
-                  onClick={() => onSelectMovie(spotlightMovie)}
-                  className="px-5 sm:px-6 py-3 rounded-xl bg-gradient-to-r from-ruby-600 to-rose-600 hover:from-ruby-500 hover:to-rose-500 text-white font-extrabold text-xs sm:text-sm shadow-glow-red transition-all flex items-center gap-2 hover:scale-105 shrink-0"
+      {/* Hero Spotlight Banner - Tự chuyển động trượt mượt mà (Animated Sliding Carousel) */}
+      {spotlightMovies.length > 0 && (
+        <div
+          className="relative w-full h-[480px] sm:h-[530px] overflow-hidden rounded-3xl mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 group/banner"
+          aria-label="Hero Spotlight Banner"
+        >
+          <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cinema-700/60 shadow-2xl bg-cinema-950">
+            {/* Sliding Carousel Track (Chuyển động trượt mượt mà 700ms giữa các phim) */}
+            <div
+              className="w-full h-full flex transition-transform duration-700 ease-in-out"
+              style={{ transform: `translateX(-${safeIndex * 100}%)` }}
+            >
+              {spotlightMovies.map((movie, idx) => (
+                <div
+                  key={movie.id}
+                  className="relative w-full h-full shrink-0 overflow-hidden"
                 >
-                  <Ticket className="w-4 h-4 shrink-0" />
-                  Đặt Vé Ngay
-                </button>
-                <button
-                  onClick={() => setDetailMovie(spotlightMovie)}
-                  className="px-4 sm:px-5 py-3 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 text-white font-bold text-xs sm:text-sm border border-cinema-600/60 backdrop-blur-md transition-all flex items-center gap-2 shrink-0"
-                >
-                  <Film className="w-4 h-4 text-ruby-400 shrink-0" />
-                  Chi Tiết Phim
-                </button>
-                <button
-                  onClick={() =>
-                    setTrailerData({
-                      isOpen: true,
-                      url: spotlightMovie.trailer,
-                      name: spotlightMovie.name,
-                    })
-                  }
-                  className="px-4 py-3 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 text-slate-300 hover:text-white font-semibold text-xs sm:text-sm border border-cinema-600/60 backdrop-blur-md transition-all flex items-center gap-2 shrink-0"
-                >
-                  <Play className="w-4 h-4 text-ruby-400 fill-ruby-400 shrink-0" />
-                  Trailer
-                </button>
+                  {/* Background Backdrop với hiệu ứng chuyển động Ken Burns phóng to nhẹ */}
+                  <img
+                    src={movie.poster}
+                    alt={movie.name}
+                    className={`w-full h-full object-cover object-center filter brightness-75 scale-105 ${
+                      idx === safeIndex ? 'animate-ken-burns' : ''
+                    }`}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://image.tmdb.org/t/p/w780/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg';
+                    }}
+                  />
+
+                  {/* Gradient Overlays */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent pointer-events-none z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent pointer-events-none z-10" />
+
+                  {/* Hero Content của từng phim */}
+                  <div className="absolute bottom-0 left-0 p-6 sm:p-10 lg:p-12 max-w-3xl lg:max-w-4xl space-y-3.5 sm:space-y-4 cinematic-dark-overlay z-20">
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 rounded-full bg-ruby-600 text-white font-black text-xs uppercase tracking-wider flex items-center gap-1 shadow-glow-red">
+                        <Flame className="w-3.5 h-3.5 fill-white" /> PHIM BOM TẤN NỔI BẬT
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-cinema-800/80 text-amber-400 border border-amber-500/40 text-xs font-bold font-mono">
+                        {movie.format}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-cinema-800/80 text-slate-300 text-xs font-semibold">
+                        {movie.age_rating}
+                      </span>
+                    </div>
+
+                    <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight drop-shadow-md">
+                      {movie.name}
+                    </h1>
+
+                    <p className="text-xs sm:text-sm text-slate-300 line-clamp-3 leading-relaxed">
+                      {movie.description}
+                    </p>
+
+                    <div className="flex items-center gap-4 text-xs text-slate-300 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-4 h-4 text-ruby-400" /> {movie.duration} phút
+                      </span>
+                      <span>•</span>
+                      <span>{movie.genre}</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => onSelectMovie(movie)}
+                        className="px-5 sm:px-6 py-3 rounded-xl bg-gradient-to-r from-ruby-600 to-rose-600 hover:from-ruby-500 hover:to-rose-500 text-white font-extrabold text-xs sm:text-sm shadow-glow-red transition-all flex items-center gap-2 hover:scale-105 shrink-0"
+                      >
+                        <Ticket className="w-4 h-4 shrink-0" />
+                        Đặt Vé Ngay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailMovie(movie)}
+                        className="px-4 sm:px-5 py-3 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 text-white font-bold text-xs sm:text-sm border border-cinema-600/60 backdrop-blur-md transition-all flex items-center gap-2 shrink-0"
+                      >
+                        <Film className="w-4 h-4 text-ruby-400 shrink-0" />
+                        Chi Tiết Phim
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTrailerData({
+                            isOpen: true,
+                            url: movie.trailer,
+                            name: movie.name,
+                          })
+                        }
+                        className="px-4 py-3 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 text-slate-300 hover:text-white font-semibold text-xs sm:text-sm border border-cinema-600/60 backdrop-blur-md transition-all flex items-center gap-2 shrink-0"
+                      >
+                        <Play className="w-4 h-4 text-ruby-400 fill-ruby-400 shrink-0" />
+                        Trailer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => cinemaSound.playCinemaIntroBoom()}
+                        className="px-4 py-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs sm:text-sm border border-amber-500/40 backdrop-blur-md transition-all flex items-center gap-2 shrink-0"
+                        title="Nghe hiệu ứng âm thanh mở màn chuẩn rạp"
+                      >
+                        <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
+                        Âm Thanh IMAX
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Điều khiển thủ công: Mũi tên trái/phải & Hàng chấm tròn có thanh tiến trình tự chuyển */}
+            {spotlightMovies.length > 1 && (
+              <>
+                {/* Nút mũi tên chuyển phim trước */}
                 <button
                   type="button"
-                  onClick={() => cinemaSound.playCinemaIntroBoom()}
-                  className="px-4 py-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs sm:text-sm border border-amber-500/40 backdrop-blur-md transition-all flex items-center gap-2 shrink-0"
-                  title="Nghe hiệu ứng âm thanh mở màn chuẩn rạp"
+                  onClick={handlePrev}
+                  aria-label="Phim trước"
+                  className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-black/50 hover:bg-ruby-600 text-white/80 hover:text-white backdrop-blur-md border border-white/10 hover:border-ruby-500/50 transition-all duration-300 shadow-lg hover:scale-110 focus:outline-none"
                 >
-                  <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
-                  Âm Thanh IMAX
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
-              </div>
-            </div>
+
+                {/* Nút mũi tên chuyển phim tiếp theo */}
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  aria-label="Phim tiếp theo"
+                  className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-black/50 hover:bg-ruby-600 text-white/80 hover:text-white backdrop-blur-md border border-white/10 hover:border-ruby-500/50 transition-all duration-300 shadow-lg hover:scale-110 focus:outline-none"
+                >
+                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+
+                {/* Hàng chấm tròn điều hướng kèm thanh tiến trình chạy động */}
+                <div className="absolute bottom-5 sm:bottom-8 right-6 sm:right-10 z-30 flex items-center gap-2.5 bg-black/50 backdrop-blur-md px-3.5 py-2 rounded-full border border-white/10 shadow-xl">
+                  {spotlightMovies.map((m, idx) => {
+                    const isActive = idx === safeIndex;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => handleSelectIndex(idx)}
+                        aria-label={`Chuyển tới phim ${idx + 1}: ${m.name}`}
+                        className={`h-2.5 rounded-full transition-all duration-300 relative overflow-hidden focus:outline-none ${
+                          isActive
+                            ? 'w-10 bg-ruby-950/80 border border-ruby-500/50 shadow-glow-red'
+                            : 'w-2.5 bg-white/35 hover:bg-white/70'
+                        }`}
+                      >
+                        {isActive && (
+                          <div
+                            key={`progress-${safeIndex}-${timerKey}`}
+                            className="h-full bg-gradient-to-r from-ruby-600 via-rose-500 to-amber-500 rounded-full animate-progress-fill"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -456,17 +628,24 @@ export function HomePage({
                 className={`group relative rounded-3xl overflow-hidden border border-cinema-700/70 bg-cinema-900/90 shadow-2xl flex flex-col justify-between min-h-[490px] sm:min-h-[520px] transition-all duration-500 hover:-translate-y-2 cursor-pointer ${tech.borderHover}`}
               >
                 {/* Background Image with Zoom & Dark Gradients */}
-                <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-cinema-900 to-cinema-950">
                   <img
                     src={tech.image}
                     alt={tech.title}
                     onError={(e) => {
-                      e.target.src = tech.fallbackImage;
+                      if (!e.target.dataset.triedFallback && tech.fallbackImage) {
+                        e.target.dataset.triedFallback = 'true';
+                        e.target.src = tech.fallbackImage;
+                      } else {
+                        e.target.style.display = 'none';
+                      }
                     }}
-                    className="w-full h-full object-cover object-center transform transition-transform duration-700 ease-out group-hover:scale-110 filter brightness-[0.72] contrast-[1.12]"
+                    className={`w-full h-full object-cover object-center transform transition-transform duration-700 ease-out group-hover:scale-110 filter contrast-[1.12] ${
+                      tech.id === 'imax' || tech.id === '4dx' ? 'brightness-[0.88]' : 'brightness-[0.72]'
+                    }`}
                   />
                   {/* Multilayer Dark Gradient for High Text Contrast */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-cinema-950 via-cinema-950/80 to-cinema-950/25" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-slate-950/25" />
                   <div className={`absolute inset-0 opacity-0 group-hover:opacity-25 transition-opacity duration-500 bg-gradient-to-b ${tech.glowGradient}`} />
                 </div>
 
@@ -481,7 +660,7 @@ export function HomePage({
                 </div>
 
                 {/* Bottom Content: Titles, Descriptions, Feature Badges & Action */}
-                <div className="relative z-10 p-6 sm:p-7 flex flex-col justify-end">
+                <div className="relative z-10 p-6 sm:p-7 flex flex-col justify-end cinematic-dark-overlay">
                   <div className="text-[11px] font-semibold text-amber-400/90 uppercase tracking-widest mb-1.5">
                     {tech.tagline}
                   </div>
