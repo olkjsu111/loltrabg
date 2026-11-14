@@ -154,7 +154,7 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onCancelTicket }) {
 
           ctx.fillStyle = '#64748b';
           ctx.font = '11px Arial, sans-serif';
-          ctx.fillText('Hotline hỗ trợ: 1900 6868 • Website: nightmovie.vn', canvas.width / 2, 770);
+          ctx.fillText('Hotline hỗ trợ: 0375358344 • Website: nightmovie.vn', canvas.width / 2, 770);
 
           // Tải ảnh về
           const imageURL = canvas.toDataURL('image/png');
@@ -269,8 +269,14 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onCancelTicket }) {
               </div>
               <div className="flex items-center gap-2">
                 <Ticket className="w-4 h-4 text-gold-400" />
-                <span className="font-bold text-amber-400">
-                  Ghế {ticket.row_number}{ticket.seat_number} ({ticket.seat_type?.toUpperCase() || 'STANDARD'})
+                <span className={`font-bold ${ticket.seat_type === 'couple' ? 'text-pink-400' : 'text-amber-400'}`}>
+                  Ghế {ticket.row_number}{ticket.seat_number} (
+                  {ticket.seat_type === 'couple'
+                    ? 'GHẾ ĐÔI / COUPLE - 2 NGƯỜI'
+                    : ticket.seat_type === 'vip'
+                    ? 'VIP'
+                    : 'STANDARD'}
+                  )
                 </span>
               </div>
             </div>

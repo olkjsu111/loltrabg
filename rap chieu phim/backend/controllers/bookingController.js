@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { validateAllSeatsGap } = require('../utils/seatGapValidator');
 
 const SEAT_HOLD_MINUTES = parseInt(process.env.SEAT_HOLD_MINUTES || '10', 10);
 
@@ -65,12 +66,18 @@ async function holdSeats(req, res, next) {
 
       // Lấy thông tin giá từng loại ghế
       const [seatsInfo] = await conn.query(
-        `SELECT id, room_id, row_number, seat_number, seat_type FROM seats WHERE id IN (?)`,
+        `SELECT id, room_id, row_number, seat_number, seat_type, status FROM seats WHERE id IN (?)`,
         [seat_ids]
       );
 
       if (!seatsInfo || seatsInfo.length !== seat_ids.length) {
         throw new Error('Một số ghế được chọn không tồn tại trong hệ thống.');
+      }
+
+      // RÀNG BUỘC: Không cho đặt ghế đang bảo trì hoặc ngừng hoạt động
+      const brokenSeats = seatsInfo.filter((s) => s.status === 'broken' || s.status === 'inactive');
+      if (brokenSeats.length > 0) {
+        throw new Error('Một số ghế được chọn đang bảo trì hoặc tạm ngừng phục vụ.');
       }
 
       // Xác thực nghiêm ngặt: Tất cả ghế phải thuộc chính xác phòng chiếu của suất chiếu này
@@ -81,16 +88,49 @@ async function holdSeats(req, res, next) {
         throw new Error('Một số ghế được chọn không thuộc phòng chiếu của suất này.');
       }
 
+      // RÀNG BUỘC NGHIỆP VỤ: KHÔNG ĐỂ LẠI GHẾ TRỐNG ĐƠN LẺ (SINGLE SEAT GAP RULE)
+      // Áp dụng cho: Ghế thường (A, B, C) và Ghế VIP (D, E). Không áp dụng cho Couple (F).
+      const [allRoomSeats] = await conn.query(
+        `SELECT id, room_id, row_number, seat_number, seat_type, status FROM seats WHERE room_id = ?`,
+        [schedule.room_id]
+      );
+
+      const [activeScreeningSeats] = await conn.query(
+        `SELECT bs.seat_id, bs.status, bs.hold_expire
+         FROM booking_seats bs
+         JOIN bookings b ON bs.booking_id = b.id
+         WHERE b.screening_id = ?
+           AND (
+             bs.status = 'booked'
+             OR (bs.status = 'holding' AND bs.hold_expire > NOW())
+           )`,
+        [screening_id]
+      );
+
+      const activeUnavailableSet = new Set((activeScreeningSeats || []).map((b) => Number(b.seat_id)));
+      const isSeatUnavailableBefore = (s) => {
+        if (s.status === 'broken' || s.status === 'inactive') return true;
+        return activeUnavailableSet.has(Number(s.id));
+      };
+
+      const gapCheck = validateAllSeatsGap(allRoomSeats, seat_ids, isSeatUnavailableBefore);
+      if (!gapCheck.isValid) {
+        throw new Error(gapCheck.message || 'Không thể chọn ghế này vì sẽ để lại một chỗ trống đơn lẻ. Vui lòng chọn vị trí khác.');
+      }
+
       let totalAmount = 0;
+      let totalPeopleCount = 0;
       const basePrice = parseFloat(schedule.ticket_price);
       const calculatedSeats = seatsInfo.map((seat) => {
         let price = basePrice;
         if (seat.seat_type === 'vip') price += 20000;
         if (seat.seat_type === 'couple') price = price * 2 + 10000;
         totalAmount += price;
+        totalPeopleCount += (seat.seat_type === 'couple' ? 2 : 1);
         return {
           seat_id: seat.id,
           price,
+          capacity: seat.seat_type === 'couple' ? 2 : 1,
         };
       });
 
@@ -135,9 +175,15 @@ async function holdSeats(req, res, next) {
         bookingId,
         bookingCode,
         totalAmount,
+        totalSeatsCount: seatsInfo.length,
+        totalPeopleCount,
         holdExpire: holdExpireDate,
         holdMinutes: SEAT_HOLD_MINUTES,
-        seats: seatsInfo,
+        seats: seatsInfo.map((s) => ({
+          ...s,
+          price: calculatedSeats.find((cs) => cs.seat_id === s.id)?.price || basePrice,
+          capacity: s.seat_type === 'couple' ? 2 : 1,
+        })),
       };
     });
 
@@ -149,6 +195,12 @@ async function holdSeats(req, res, next) {
   } catch (error) {
     if (error.message.includes('vừa được người khác giữ')) {
       return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    if (error.message.includes('chỗ trống đơn lẻ') || error.message.includes('ghế trống đơn lẻ')) {
+      return res.status(400).json({
         success: false,
         message: error.message,
       });

@@ -133,7 +133,7 @@ export function CinemaBotModal({
     } catch (e) {}
   };
 
-  const handleSendMessage = (textToSend) => {
+  const handleSendMessage = async (textToSend) => {
     const query = (textToSend || input).trim();
     if (!query) return;
 
@@ -156,17 +156,70 @@ export function CinemaBotModal({
       cinemaSound.playTicketChime();
     } catch (e) {}
 
-    setTimeout(() => {
-      const botResponse = generateBotResponse(query);
+    // Tạo timeout 10 giây cho request để tránh treo giao diện
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 10000);
+
+    try {
+      // 1. Gửi request đến backend REST API (/api/chat)
+      const res = await api.sendChatMessage(query, { signal: abortController.signal });
+      clearTimeout(timeoutId);
+
+      if (res && res.success && res.reply) {
+        const botMsg = {
+          id: Date.now() + 1,
+          sender: 'bot',
+          text: res.reply,
+          quickReplies: res.quickReplies || ['🔥 Phim hot đang chiếu', '🎫 Suất chiếu tối nay', '🎡 Quay voucher'],
+          actionType: res.actionType,
+          actionLabel: res.actionLabel,
+        };
+        setMessages((prev) => [...prev, botMsg]);
+        speakText(botMsg.text);
+      } else {
+        throw new Error(res?.message || 'Phản hồi từ máy chủ không hợp lệ');
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.warn('[CinemaBot] API chat error, attempting local fallback:', err.message);
+
+      // 2. Nếu API lỗi hoặc timeout, sử dụng local fallback an toàn và hiển thị thông báo
+      try {
+        const fallbackRes = generateBotResponse(query);
+        setMessages((prev) => [...prev, fallbackRes]);
+        speakText(fallbackRes.text);
+      } catch (fallbackErr) {
+        console.error('[CinemaBot] Fatal fallback error:', fallbackErr);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            sender: 'bot',
+            text: 'Xin lỗi, trợ lý rạp đang gặp sự cố kết nối, bạn vui lòng thử lại sau nhé! ⚠️',
+            quickReplies: ['🔥 Phim hot đang chiếu', '🎫 Suất chiếu tối nay']
+          }
+        ]);
+      }
+    } finally {
+      // 3. Luôn tắt trạng thái "đang gõ" (3 chấm)
       setIsTyping(false);
-      setMessages((prev) => [...prev, botResponse]);
-      speakText(botResponse.text);
-    }, 600);
+    }
   };
 
   // Natural Language Understanding Engine
   const generateBotResponse = (query) => {
     const q = query.toLowerCase();
+
+    // 0. Chào hỏi thân thiện (hello, hi, chào) - dùng word boundary để tránh khớp nhầm "phim", "chiếu" (chứa 'hi')
+    const isGreeting = /\b(hello|hi|hey|alo)\b/i.test(q) || q.includes('chào');
+    if (isGreeting) {
+      return {
+        id: Date.now() + 1,
+        sender: 'bot',
+        text: 'Xin chào! Tôi là **CinemaBot** - Trợ lý đặt vé và chăm sóc khách hàng của Rạp Night Movie 🍿🎬.\n\nTôi có thể giúp bạn:\n- 🎬 Tra cứu danh sách **phim hot đang chiếu**\n- 📅 Xem **lịch chiếu & giá vé** hôm nay\n- 💡 Hướng dẫn chọn **vị trí ghế vàng Sweet Spot**\n- 🎡 Tham gia **Vòng quay may mắn** nhận voucher giảm 20.000đ\n\nBạn cần hỗ trợ gì ạ?',
+        quickReplies: ['🔥 Phim hot đang chiếu', '🎫 Suất chiếu tối nay', '🎡 Quay voucher', '🍿 Menu bắp nước']
+      };
+    }
 
     // 1. Voucher / Lucky Wheel
     if (q.includes('voucher') || q.includes('quay') || q.includes('khuyến mãi') || q.includes('mã giảm') || q.includes('giảm giá')) {
@@ -228,7 +281,8 @@ export function CinemaBotModal({
 
     // 6. Specific Movie Search
     const matchedMovie = moviesList.find((m) => {
-      const name = m.title.toLowerCase();
+      const name = (m.name || m.title || '').toLowerCase();
+      if (!name) return false;
       return q.includes(name) || (name.includes('lật mặt') && q.includes('lật mặt')) || (name.includes('dune') && q.includes('dune')) || (name.includes('conan') && q.includes('conan'));
     });
 
@@ -237,7 +291,7 @@ export function CinemaBotModal({
       return {
         id: Date.now() + 1,
         sender: 'bot',
-        text: `🎬 Tôi đã tìm thấy phim **${matchedMovie.title}** (${matchedMovie.screening_format || '2D/IMAX'} - ${matchedMovie.duration || 120} phút).\nĐiểm đánh giá: ⭐ **${matchedMovie.rating || '9.5'}/10**. Bạn có muốn chọn suất chiếu để giữ ghế ngay không?`,
+        text: `🎬 Tôi đã tìm thấy phim **${matchedMovie.name || matchedMovie.title}** (${matchedMovie.format || matchedMovie.screening_format || '2D/IMAX'} - ${matchedMovie.duration || 120} phút).\nĐiểm đánh giá: ⭐ **${matchedMovie.rating || '9.5'}/10**. Bạn có muốn chọn suất chiếu để giữ ghế ngay không?`,
         movieData: matchedMovie,
         schedulesData: movieSchedules.slice(0, 3),
         quickReplies: ['🎫 Xem tất cả suất chiếu', '🎡 Quay voucher']
@@ -310,18 +364,18 @@ export function CinemaBotModal({
     <>
       {/* Floating Support Launch Button */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 animate-bounce">
+        <div className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 transition-transform duration-300 hover:scale-105">
           <div className="hidden sm:flex px-3.5 py-1.5 rounded-2xl bg-cinema-900/90 border border-ruby-500/50 text-white text-xs font-semibold shadow-xl backdrop-blur-md items-center gap-1.5">
             <Headphones className="w-3.5 h-3.5 text-amber-400" />
             <span>Hỗ trợ trực tuyến & Giọng nói</span>
           </div>
           <button
             onClick={() => setIsOpen(true)}
-            className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-ruby-600 via-rose-600 to-amber-500 text-white shadow-glow-red flex items-center justify-center relative group hover:scale-110 active:scale-95 transition-all"
+            className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-ruby-600 via-rose-600 to-amber-500 text-white shadow-glow-red flex items-center justify-center relative group hover:scale-110 active:scale-95 transition-all"
             title="Mở Hỗ Trợ Khách Hàng"
           >
-            <MessageSquare className="w-7 h-7" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-cinema-950 animate-pulse" />
+            <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7" />
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-emerald-500 border-2 border-cinema-950 animate-pulse" />
           </button>
         </div>
       )}

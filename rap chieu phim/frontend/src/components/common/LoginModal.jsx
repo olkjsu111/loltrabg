@@ -1,12 +1,48 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
-import { X, Lock, User, Mail, Phone, KeyRound, CheckCircle } from 'lucide-react';
+import { X, Lock, User, Mail, Phone, KeyRound, CheckCircle, Eye, EyeOff } from 'lucide-react';
+
+const DEMO_ACCOUNTS = [
+  {
+    name: 'Elon Musk',
+    role: 'Admin',
+    username: 'admin',
+    password: 'password123',
+    nameColor: 'text-ruby-400',
+    hoverBorder: 'hover:border-ruby-500/60',
+  },
+  {
+    name: 'Mark Zuckerberg',
+    role: 'Manager',
+    username: 'manager1',
+    password: 'password123',
+    nameColor: 'text-amber-400',
+    hoverBorder: 'hover:border-amber-500/60',
+  },
+  {
+    name: 'Steve Jobs',
+    role: 'Staff',
+    username: 'staff1',
+    password: 'password123',
+    nameColor: 'text-blue-400',
+    hoverBorder: 'hover:border-blue-500/60',
+  },
+  {
+    name: 'Bill Gate',
+    role: 'Technician',
+    username: 'tech1',
+    password: 'password123',
+    nameColor: 'text-emerald-400',
+    hoverBorder: 'hover:border-emerald-500/60',
+  },
+];
 
 export function LoginModal({ isOpen, onClose }) {
   const { login, register, loading } = useAuth();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [isForgotMode, setIsForgotMode] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -135,13 +171,22 @@ export function LoginModal({ isOpen, onClose }) {
                 <div className="relative">
                   <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     value={formData.forgotNewPassword}
                     onChange={(e) => setFormData({ ...formData, forgotNewPassword: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-cinema-900 border border-cinema-700 text-white text-sm focus:outline-none focus:border-ruby-500"
+                    className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-cinema-900 border border-cinema-700 text-white text-sm focus:outline-none focus:border-ruby-500"
                     placeholder="Mật khẩu mới (ví dụ: password123)"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer p-1"
+                    title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             </>
@@ -182,13 +227,22 @@ export function LoginModal({ isOpen, onClose }) {
                 <div className="relative">
                   <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-cinema-900 border border-cinema-700 text-white text-sm focus:outline-none focus:border-ruby-500 focus:ring-1 focus:ring-ruby-500"
+                    className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-cinema-900 border border-cinema-700 text-white text-sm focus:outline-none focus:border-ruby-500 focus:ring-1 focus:ring-ruby-500"
                     placeholder="Nhập password"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer p-1"
+                    title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -250,38 +304,19 @@ export function LoginModal({ isOpen, onClose }) {
               Tài khoản mẫu (Bấm để điền nhanh):
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin', 'password123')}
-                className="p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 hover:border-ruby-500/60 border border-cinema-700/60 text-left transition-all cursor-pointer"
-              >
-                <div className="font-bold text-ruby-400">Elon Musk</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">Admin • admin / password123</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('manager1', 'password123')}
-                className="p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 hover:border-amber-500/60 border border-cinema-700/60 text-left transition-all cursor-pointer"
-              >
-                <div className="font-bold text-amber-400">Mark Zuckerberg</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">Manager • manager1 / password123</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('staff1', 'password123')}
-                className="p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 hover:border-blue-500/60 border border-cinema-700/60 text-left transition-all cursor-pointer"
-              >
-                <div className="font-bold text-blue-400">Steve Jobs</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">Staff • staff1 / password123</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('tech1', 'password123')}
-                className="p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 hover:border-emerald-500/60 border border-cinema-700/60 text-left transition-all cursor-pointer"
-              >
-                <div className="font-bold text-emerald-400">Bill Gate</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">Technician • tech1 / password123</div>
-              </button>
+              {DEMO_ACCOUNTS.map((acc) => (
+                <button
+                  key={acc.username}
+                  type="button"
+                  onClick={() => handleQuickFill(acc.username, acc.password)}
+                  className={`p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 ${acc.hoverBorder} border border-cinema-700/60 text-left transition-all cursor-pointer min-h-[56px] flex flex-col justify-center`}
+                >
+                  <div className={`font-bold text-xs truncate ${acc.nameColor}`}>{acc.name}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 font-mono truncate">
+                    {acc.role} • {acc.username} / {acc.password}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         )}
