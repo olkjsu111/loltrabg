@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { BookingProvider, useBooking } from './context/BookingContext';
 import { api } from './services/api';
@@ -290,10 +291,12 @@ function MainApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BookingProvider>
-        <MainApp />
-      </BookingProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BookingProvider>
+          <MainApp />
+        </BookingProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

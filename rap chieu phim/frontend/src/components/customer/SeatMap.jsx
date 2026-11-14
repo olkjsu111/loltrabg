@@ -163,9 +163,9 @@ export function SeatMap({ scheduleData, onProceedToPayment, onCancelHold }) {
       <div className="w-full max-w-3xl mb-10 text-center">
         <div className="cinema-screen-curve w-full mx-auto" />
         <div className="cinema-screen-glow h-10 w-full -mt-2 pointer-events-none" />
-        <div className="text-[11px] font-bold tracking-widest text-slate-400 uppercase mt-2 flex items-center justify-center gap-2">
-          <span className="text-slate-300 font-extrabold">MÀN HÌNH CHIẾU • {schedule?.room_name || 'NIGHT MOVIE CINEMA'}</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-md bg-cinema-800 text-amber-300 border border-amber-500/30 font-semibold hidden sm:inline-block">
+        <div className="text-[11px] font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase mt-2 flex items-center justify-center gap-2">
+          <span className="text-slate-800 dark:text-slate-300 font-extrabold">MÀN HÌNH CHIẾU • {schedule?.room_name || 'NIGHT MOVIE CINEMA'}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-md bg-cinema-800 text-amber-600 dark:text-amber-300 border border-amber-500/30 font-semibold hidden sm:inline-block">
             Bấm vào ghế đã chọn để xem góc nhìn 3D
           </span>
         </div>
@@ -177,8 +177,8 @@ export function SeatMap({ scheduleData, onProceedToPayment, onCancelHold }) {
           {/* LỐI ĐI 1 - CỬA TÂY (BÊN TRÁI) */}
           <div className="flex flex-col justify-between py-2 px-1.5 sm:px-2 rounded-2xl bg-cinema-900/90 border border-cinema-800 text-slate-400 shrink-0 shadow-lg">
             <div className="flex flex-col items-center gap-1 pb-1.5 border-b border-cinema-800/80">
-              <ArrowDown className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span className="text-[9px] font-black uppercase text-amber-400 tracking-wider whitespace-nowrap">LỐI ĐI 1</span>
+              <ArrowDown className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 animate-pulse" />
+              <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider whitespace-nowrap">LỐI ĐI 1</span>
               <span className="text-[8px] text-slate-500 font-mono whitespace-nowrap">CỬA TÂY</span>
             </div>
 
@@ -309,8 +309,8 @@ export function SeatMap({ scheduleData, onProceedToPayment, onCancelHold }) {
           {/* LỐI ĐI 2 - CỬA ĐÔNG (BÊN PHẢI) */}
           <div className="flex flex-col justify-between py-2 px-1.5 sm:px-2 rounded-2xl bg-cinema-900/90 border border-cinema-800 text-slate-400 shrink-0 shadow-lg">
             <div className="flex flex-col items-center gap-1 pb-1.5 border-b border-cinema-800/80">
-              <ArrowDown className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span className="text-[9px] font-black uppercase text-amber-400 tracking-wider whitespace-nowrap">LỐI ĐI 2</span>
+              <ArrowDown className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 animate-pulse" />
+              <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider whitespace-nowrap">LỐI ĐI 2</span>
               <span className="text-[8px] text-slate-500 font-mono whitespace-nowrap">CỬA ĐÔNG</span>
             </div>
 

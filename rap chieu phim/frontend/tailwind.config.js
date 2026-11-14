@@ -9,12 +9,12 @@ export default {
     extend: {
       colors: {
         cinema: {
-          950: '#07090e',
-          900: '#0d1117',
-          850: '#131822',
-          800: '#1a2232',
-          700: '#263145',
-          600: '#384661',
+          950: 'rgb(var(--color-cinema-950) / <alpha-value>)',
+          900: 'rgb(var(--color-cinema-900) / <alpha-value>)',
+          850: 'rgb(var(--color-cinema-850) / <alpha-value>)',
+          800: 'rgb(var(--color-cinema-800) / <alpha-value>)',
+          700: 'rgb(var(--color-cinema-700) / <alpha-value>)',
+          600: 'rgb(var(--color-cinema-600) / <alpha-value>)',
         },
         ruby: {
           500: '#ff1a2b',

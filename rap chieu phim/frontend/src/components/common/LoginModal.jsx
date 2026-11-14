@@ -313,7 +313,7 @@ export function LoginModal({ isOpen, onClose }) {
                 >
                   <div className={`font-bold text-xs truncate ${acc.nameColor}`}>{acc.name}</div>
                   <div className="text-[10px] text-slate-400 mt-0.5 font-mono truncate">
-                    {acc.role} • {acc.username} / {acc.password}
+                    {acc.role} • {acc.username}
                   </div>
                 </button>
               ))}
