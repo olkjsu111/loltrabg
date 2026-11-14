@@ -1,26 +1,31 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
-import { X, Lock, User, Mail, Phone, KeyRound, Sparkles, CheckCircle } from 'lucide-react';
+import { X, Lock, User, Mail, Phone, KeyRound, CheckCircle } from 'lucide-react';
 
 export function LoginModal({ isOpen, onClose }) {
-  const { login, register, switchRole, loading } = useAuth();
+  const { login, register, loading } = useAuth();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   const [formData, setFormData] = useState({
-    username: 'admin',
-    password: 'password123',
+    username: '',
+    password: '',
     name: '',
     email: '',
     phone: '',
     forgotIdentifier: '',
-    forgotNewPassword: 'password123',
+    forgotNewPassword: '',
   });
 
   if (!isOpen) return null;
+
+  const handleQuickFill = (u, p) => {
+    setFormData((prev) => ({ ...prev, username: u, password: p }));
+    setErrorMsg('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,12 +71,6 @@ export function LoginModal({ isOpen, onClose }) {
     }
   };
 
-  const handleQuickFill = (u, p) => {
-    setFormData((prev) => ({ ...prev, username: u, password: p }));
-    setIsRegisterMode(false);
-    setIsForgotMode(false);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-cinema-600/60 overflow-hidden">
@@ -97,7 +96,7 @@ export function LoginModal({ isOpen, onClose }) {
           <p className="text-xs text-slate-400 mt-1">
             {isForgotMode
               ? 'Nhập username hoặc email của bạn để cấp lại mật khẩu'
-              : 'Hệ Thống Quản Lý Vận Hành & Đặt Vé Rạp Phim (OOAD)'}
+              : 'Chào mừng bạn đến với Rạp chiếu phim Night Movie'}
           </p>
         </div>
 
@@ -244,44 +243,44 @@ export function LoginModal({ isOpen, onClose }) {
           </button>
         </form>
 
-        {/* Demo Accounts Cheat-sheet */}
+        {/* Demo Accounts Quick Fill */}
         {!isRegisterMode && !isForgotMode && (
           <div className="mt-6 pt-4 border-t border-cinema-700/60">
-            <div className="text-[11px] font-bold text-gold-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> Tài khoản mẫu (Bấm để điền nhanh):
+            <div className="text-[11px] font-bold text-gold-400 uppercase tracking-wider mb-2">
+              Tài khoản mẫu (Bấm để điền nhanh):
             </div>
-            <div className="grid grid-cols-2 gap-1.5 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => handleQuickFill('admin', 'password123')}
-                className="p-2 rounded-lg bg-cinema-900 hover:bg-cinema-800 border border-cinema-700/60 text-left transition-colors"
+                className="p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 hover:border-ruby-500/60 border border-cinema-700/60 text-left transition-all cursor-pointer"
               >
-                <div className="font-bold text-ruby-400">👑 Admin</div>
-                <div className="text-[10px] text-slate-400">admin / password123</div>
+                <div className="font-bold text-ruby-400">Elon Musk</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Admin • admin / password123</div>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill('manager1', 'password123')}
-                className="p-2 rounded-lg bg-cinema-900 hover:bg-cinema-800 border border-cinema-700/60 text-left transition-colors"
+                className="p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 hover:border-amber-500/60 border border-cinema-700/60 text-left transition-all cursor-pointer"
               >
-                <div className="font-bold text-amber-400">👔 Manager</div>
-                <div className="text-[10px] text-slate-400">manager1 / password123</div>
+                <div className="font-bold text-amber-400">Mark Zuckerberg</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Manager • manager1 / password123</div>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill('staff1', 'password123')}
-                className="p-2 rounded-lg bg-cinema-900 hover:bg-cinema-800 border border-cinema-700/60 text-left transition-colors"
+                className="p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 hover:border-blue-500/60 border border-cinema-700/60 text-left transition-all cursor-pointer"
               >
-                <div className="font-bold text-blue-400">📋 Staff</div>
-                <div className="text-[10px] text-slate-400">staff1 / password123</div>
+                <div className="font-bold text-blue-400">Steve Jobs</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Staff • staff1 / password123</div>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill('tech1', 'password123')}
-                className="p-2 rounded-lg bg-cinema-900 hover:bg-cinema-800 border border-cinema-700/60 text-left transition-colors"
+                className="p-2.5 rounded-xl bg-cinema-900 hover:bg-cinema-850 hover:border-emerald-500/60 border border-cinema-700/60 text-left transition-all cursor-pointer"
               >
-                <div className="font-bold text-emerald-400">🔧 Technician</div>
-                <div className="text-[10px] text-slate-400">tech1 / password123</div>
+                <div className="font-bold text-emerald-400">Bill Gate</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Technician • tech1 / password123</div>
               </button>
             </div>
           </div>
