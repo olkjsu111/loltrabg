@@ -747,7 +747,7 @@ async function query(sql, params = []) {
     }
     if (normalized.includes('where t.customer_id = ?') || normalized.includes('where customer_id = ?')) {
       const cId = parseInt(params[0], 10);
-      return list.filter((t) => t.customer_id === cId || cId === 1);
+      return list.filter((t) => t.customer_id === cId);
     }
     if (normalized.includes('where t.ticket_code = ?') || normalized.includes('where ticket_code = ?')) {
       const code = params[0];
@@ -848,7 +848,51 @@ async function query(sql, params = []) {
 
     // Maintenance Alerts (equipmentController.getMaintenanceAlerts)
     if (normalized.includes('next_maintenance <= date_add')) {
-      return list.filter((e) => e.status !== 'good' || (e.next_maintenance && e.next_maintenance <= '2026-12-31'));
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const limit14Days = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const limit14Str = limit14Days.toISOString().split('T')[0];
+
+      const filtered = list.filter((e) => {
+        const isFaulty = ['check_needed', 'broken', 'repairing'].includes(e.status);
+        const isDueOrOverdue = e.next_maintenance && e.next_maintenance <= limit14Str;
+        return isFaulty || isDueOrOverdue;
+      });
+
+      const withDays = filtered.map((e) => {
+        let daysUntil = null;
+        let alert_reason = 'due_soon';
+        if (e.next_maintenance) {
+          const nextD = new Date(e.next_maintenance);
+          nextD.setHours(0, 0, 0, 0);
+          daysUntil = Math.round((nextD.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+        }
+
+        const st = String(e.status || '').toLowerCase();
+        if (st === 'broken' || st === 'repairing') {
+          alert_reason = 'broken';
+        } else if (st === 'check_needed') {
+          alert_reason = 'check_needed';
+        } else if (daysUntil !== null && daysUntil < 0) {
+          alert_reason = 'overdue';
+        } else {
+          alert_reason = 'due_soon';
+        }
+
+        return {
+          ...e,
+          days_until_maintenance: daysUntil,
+          alert_reason,
+        };
+      });
+
+      withDays.sort((a, b) => {
+        if (!a.next_maintenance) return 1;
+        if (!b.next_maintenance) return -1;
+        return a.next_maintenance.localeCompare(b.next_maintenance);
+      });
+
+      return withDays;
     }
 
     let pIdx = 0;
@@ -2066,6 +2110,17 @@ async function query(sql, params = []) {
       if (b) b.status = status;
       return { affectedRows: b ? 1 : 0 };
     }
+    if (normalized.includes('where screening_id = ?') || normalized.includes('where b.screening_id = ?')) {
+      const scrId = parseInt(params[0], 10);
+      let count = 0;
+      memory.bookings.forEach((b) => {
+        if (b.screening_id === scrId) {
+          if (normalized.includes("status = 'cancelled'")) b.status = 'cancelled';
+          count++;
+        }
+      });
+      return { affectedRows: count };
+    }
     const id = parseInt(params[params.length - 1], 10);
     const b = memory.bookings.find((item) => item.id === id);
     if (b) {
@@ -2099,6 +2154,19 @@ async function query(sql, params = []) {
   }
 
   if (normalized.startsWith('update booking_seats')) {
+    if (normalized.includes('where b.screening_id = ?') || normalized.includes('where screening_id = ?')) {
+      const scrId = parseInt(params[0], 10);
+      const scrBookingIds = (memory.bookings || []).filter((b) => b.screening_id === scrId).map((b) => b.id);
+      let count = 0;
+      memory.booking_seats.forEach((bs) => {
+        if (scrBookingIds.includes(bs.booking_id)) {
+          if (normalized.includes("status = 'released'")) bs.status = 'released';
+          else if (normalized.includes("status = 'booked'")) bs.status = 'booked';
+          count++;
+        }
+      });
+      return { affectedRows: count };
+    }
     if (normalized.includes('hold_expire = ? where booking_id = ?')) {
       const exp = params[0];
       const bookingId = parseInt(params[1], 10);
@@ -2179,6 +2247,9 @@ async function query(sql, params = []) {
       ? (memory.payments || []).find((p) => p.booking_id === id)
       : (memory.payments || []).find((p) => p.id === id);
     if (payment) {
+      if (normalized.includes("status = 'success'") && payment.status !== 'success') {
+        return { affectedRows: 0 };
+      }
       payment.status = status;
       return { affectedRows: 1 };
     }
@@ -2204,10 +2275,36 @@ async function query(sql, params = []) {
   }
 
   if (normalized.startsWith('update tickets')) {
+    if (normalized.includes('where screening_id = ?')) {
+      const scrId = parseInt(params[0], 10);
+      let count = 0;
+      memory.tickets.forEach((t) => {
+        if (t.screening_id === scrId) {
+          if (!normalized.includes("status = 'active'") || t.status === 'active') {
+            t.status = 'cancelled';
+            count++;
+          }
+        }
+      });
+      return { affectedRows: count };
+    }
+    if (normalized.includes('where booking_id = ?')) {
+      const bId = parseInt(params[0], 10);
+      let count = 0;
+      memory.tickets.forEach((t) => {
+        if (t.booking_id === bId) {
+          if (!normalized.includes("status = 'active'") || t.status === 'active') {
+            t.status = 'cancelled';
+            count++;
+          }
+        }
+      });
+      return { affectedRows: count };
+    }
     const idOrCode = params[0] !== undefined && params.length === 1 ? params[0] : params[params.length - 1];
     const t = memory.tickets.find((item) => item.id === parseInt(idOrCode, 10) || item.ticket_code === idOrCode);
     if (t) {
-      if (normalized.includes("status = 'active'") && t.status !== 'active') {
+      if (normalized.includes("status = 'active'") && t.status !== 'active' && t.status !== 'valid') {
         return { affectedRows: 0 };
       }
       if (normalized.includes("status = 'used'")) t.status = 'used';

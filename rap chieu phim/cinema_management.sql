@@ -1219,6 +1219,19 @@ CREATE TABLE IF NOT EXISTS `concession_recipes` (
   CONSTRAINT `fk_recipe_ing` FOREIGN KEY (`ingredient_id`) REFERENCES `inventory_ingredients` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+INSERT IGNORE INTO `concession_recipes` (`id`, `item_id`, `ingredient_id`, `quantity_used`, `note`) VALUES
+(1, 1, 1, 0.080, '80g hạt ngô bắp nổ'),
+(2, 1, 2, 0.020, '20g bơ bắp'),
+(3, 1, 3, 0.025, '25g bột phô mai'),
+(4, 1, 8, 1.000, '1 hộp bắp L'),
+(5, 2, 1, 0.080, '80g hạt ngô bắp nổ'),
+(6, 2, 2, 0.020, '20g bơ bắp'),
+(7, 2, 4, 0.030, '30g đường caramen'),
+(8, 2, 8, 1.000, '1 hộp bắp L'),
+(9, 3, 5, 0.050, '50ml siro Coca'),
+(10, 3, 7, 1.000, '1 ly 32oz'),
+(11, 3, 9, 1.000, '1 nắp + ống hút');
+
 -- --------------------------------------------------------------------
 -- 22. BẢNG inventory_logs (Nhật Ký Biến Động Kho)
 -- --------------------------------------------------------------------
@@ -1369,6 +1382,17 @@ INSERT IGNORE INTO `kdm_licenses` (`id`, `movie_id`, `movie_name`, `room_id`, `r
 (3, 2, 'Oppenheimer', 3, 'Cinema Hall 3 (VIP Prime Lounge)', 'DCI-SRV-33910', '2026-02-15 00:00:00', '2026-04-15 23:59:59', 'expiring_soon', 'KDM_OPPENHEIMER_R3.xml'),
 (4, 6, 'Godzilla x Kong: Đế Chế Mới', 5, 'Cinema Hall 5 (4DX Motion World)', 'DCI-4DX-44102', '2026-01-01 00:00:00', '2026-03-10 23:59:59', 'expired', 'KDM_GXK_4DX_44102.xml'),
 (5, 5, 'Deadpool & Wolverine', 5, 'Cinema Hall 5 (4DX Motion World)', 'DCI-4DX-55201', '2026-07-26 00:00:00', '2027-03-31 23:59:59', 'active', 'KDM_DPW_4DX_55201.xml');
+
+-- 30. Equipment Next Maintenance Dynamic Distribution
+-- Đặt next_maintenance theo ngày hiện tại để có ví dụ đủ loại cảnh báo:
+-- 1 quá hạn, 2 sắp đến hạn (<14 ngày), 1 hỏng/sửa, 1 kiểm tra, còn lại sau 30 ngày
+UPDATE `equipment` SET `next_maintenance` = DATE_ADD(CURDATE(), INTERVAL 3 DAY), `status` = 'good' WHERE `id` = 1;
+UPDATE `equipment` SET `next_maintenance` = DATE_ADD(CURDATE(), INTERVAL 7 DAY), `status` = 'good' WHERE `id` = 2;
+UPDATE `equipment` SET `next_maintenance` = DATE_SUB(CURDATE(), INTERVAL 5 DAY), `status` = 'good' WHERE `id` = 3;
+UPDATE `equipment` SET `next_maintenance` = DATE_ADD(CURDATE(), INTERVAL 45 DAY), `status` = 'good' WHERE `id` = 16;
+UPDATE `equipment` SET `next_maintenance` = DATE_ADD(CURDATE(), INTERVAL 20 DAY), `status` = 'repairing' WHERE `id` = 24;
+UPDATE `equipment` SET `next_maintenance` = DATE_ADD(CURDATE(), INTERVAL 35 DAY), `status` = 'broken' WHERE `id` = 25;
+UPDATE `equipment` SET `next_maintenance` = DATE_ADD(CURDATE(), INTERVAL 40 DAY), `status` = 'check_needed' WHERE `id` = 11;
 
 -- KẾT THÚC FILE SQL CINEMA_MANAGEMENT.SQL
 -- ====================================================================
