@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { Film, Search, Clock, Play, Ticket, Filter } from 'lucide-react';
 import { TrailerModal } from '../../components/customer/TrailerModal';
 import { MovieDetailModal } from '../../components/customer/MovieDetailModal';
+import { MovieGridSkeleton } from '../../components/common/SkeletonLoader';
 
 export function MoviesPage({ onSelectMovie, onSelectSchedule }) {
   const [movies, setMovies] = useState([]);
@@ -91,10 +92,7 @@ export function MoviesPage({ onSelectMovie, onSelectSchedule }) {
 
       {/* Movies Grid */}
       {loading ? (
-        <div className="py-20 text-center">
-          <div className="w-10 h-10 border-4 border-ruby-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-slate-400 text-xs">Đang tải danh mục phim...</p>
-        </div>
+        <MovieGridSkeleton count={8} />
       ) : movies.length === 0 ? (
         <div className="p-12 text-center glass-panel rounded-3xl border border-cinema-700">
           <Film className="w-12 h-12 text-slate-600 mx-auto mb-3" />

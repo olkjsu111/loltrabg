@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { Calendar, Clock, Film, MapPin, ChevronRight, Ticket, Filter, Zap, TrendingUp } from 'lucide-react';
+import { ScheduleListSkeleton } from '../../components/common/SkeletonLoader';
 
 const toLocalDate = (d) =>
   d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -195,10 +196,7 @@ export function SchedulesPage({ onSelectSchedule, initialMovieId = 'all' }) {
 
       {/* Schedule Grouped List */}
       {loading ? (
-        <div className="py-16 text-center">
-          <div className="w-10 h-10 border-4 border-ruby-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-slate-400 text-xs">Đang cập nhật danh sách lịch chiếu...</p>
-        </div>
+        <ScheduleListSkeleton />
       ) : movieGroupList.length === 0 ? (
         <div className="p-12 text-center glass-panel rounded-3xl border border-cinema-700">
           <Calendar className="w-12 h-12 text-slate-600 mx-auto mb-3" />
