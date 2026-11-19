@@ -10,11 +10,13 @@ import { LoginModal } from './components/common/LoginModal';
 import { UserProfileModal } from './components/customer/UserProfileModal';
 import { InSeatDeliveryModal } from './components/customer/InSeatDeliveryModal';
 import { CinemaBotModal } from './components/customer/CinemaBotModal';
+import { BackToTop } from './components/common/BackToTop';
 import { HomePage } from './pages/customer/HomePage';
 import { MoviesPage } from './pages/customer/MoviesPage';
 import { SchedulesPage } from './pages/customer/SchedulesPage';
 import { BookingFlowPage } from './pages/customer/BookingFlowPage';
 import { MyTicketsPage } from './pages/customer/MyTicketsPage';
+import { NotFoundPage } from './pages/customer/NotFoundPage';
 
 // Admin & Operations modules - Code Splitting (Tải lười theo nhu cầu để tối ưu bundle khách hàng)
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout').then((m) => ({ default: m.AdminLayout })));
@@ -269,6 +271,14 @@ function MainApp() {
             </AdminLayout>
           </Suspense>
         )}
+
+        {/* 404 Not Found Fallback */}
+        {!['home', 'movies', 'schedules', 'booking-flow', 'my-tickets', 'admin-dashboard'].includes(currentView) && (
+          <NotFoundPage
+            onNavigateHome={() => setCurrentView('home')}
+            onNavigateSchedules={() => setCurrentView('schedules')}
+          />
+        )}
       </div>
 
       {/* Global Cinema Footer */}
@@ -321,6 +331,9 @@ function MainApp() {
         onNavigate={handleNavigate}
         onOpenInSeatDelivery={() => setIsInSeatDeliveryOpen(true)}
       />
+
+      {/* Floating Smooth Back to Top Button */}
+      <BackToTop />
     </div>
   );
 }
