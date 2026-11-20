@@ -60,9 +60,13 @@ export const api = {
   // Auth
   login: (credentials) => request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
   register: (userData) => request('/auth/register', { method: 'POST', body: JSON.stringify(userData) }),
+  getGoogleConfig: () => request('/auth/google/config'),
+  googleLogin: (credential) => request('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }),
   getMe: () => request('/auth/me'),
   switchRole: (targetRole) => request('/auth/switch-role', { method: 'POST', body: JSON.stringify({ targetRole }) }),
   updateProfile: (data) => request('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
+  sendForgotPasswordOtp: (data) =>
+    request('/auth/forgot-password/send-otp', { method: 'POST', body: JSON.stringify(data) }),
   forgotPassword: (data) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
 
   // Movies

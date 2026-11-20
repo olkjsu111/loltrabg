@@ -610,3 +610,20 @@ CREATE TABLE IF NOT EXISTS movie_reviews (
 );
 CREATE INDEX IF NOT EXISTS idx_reviews_movie ON movie_reviews (movie_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user ON movie_reviews (user_id);
+
+-- --------------------------------------------------------------------
+-- 35. PASSWORD RESET OTPS (Xác thực OTP 6 số đặt lại mật khẩu)
+-- --------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS password_reset_otps (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  email VARCHAR(150) NOT NULL,
+  otp_hash VARCHAR(255) NOT NULL,
+  attempts INT NOT NULL DEFAULT 0,
+  expires_at TIMESTAMP NOT NULL,
+  used_at TIMESTAMP NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_password_reset_otps_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_password_reset_otps_user ON password_reset_otps (user_id);
+CREATE INDEX IF NOT EXISTS idx_password_reset_otps_email ON password_reset_otps (email);

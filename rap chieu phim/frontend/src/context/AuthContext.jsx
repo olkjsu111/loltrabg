@@ -125,6 +125,25 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const googleLogin = async (credential) => {
+    setLoading(true);
+    try {
+      const res = await api.googleLogin(credential);
+      if (res.success) {
+        setToken(res.token);
+        setUser(res.user);
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
+        return { success: true, user: res.user, message: res.message };
+      }
+      return { success: false, message: res.message || 'Đăng nhập Google thất bại.' };
+    } catch (err) {
+      return { success: false, message: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken('');
@@ -166,6 +185,7 @@ export function AuthProvider({ children }) {
         markAsRead,
         login,
         register,
+        googleLogin,
         logout,
         switchRole,
         fetchNotifications,

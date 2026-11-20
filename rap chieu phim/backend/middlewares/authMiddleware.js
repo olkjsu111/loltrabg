@@ -24,8 +24,8 @@ async function authenticateToken(req, res, next) {
     if (db.getIsConnected()) {
       const users = await db.query(
         `SELECT u.id, u.username, u.role_id, r.name AS role, u.status,
-                c.id AS customer_id, c.name AS customer_name,
-                e.id AS employee_id, e.name AS employee_name, e.position, e.department
+                c.id AS customer_id, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone, c.membership_level,
+                e.id AS employee_id, e.name AS employee_name, e.email AS employee_email, e.phone AS employee_phone, e.position, e.department
          FROM users u
          JOIN roles r ON u.role_id = r.id
          LEFT JOIN customers c ON c.user_id = u.id
@@ -57,6 +57,10 @@ async function authenticateToken(req, res, next) {
         customerId: user.customer_id,
         employeeId: user.employee_id,
         name: user.employee_name || user.customer_name || user.username,
+        email: user.employee_email || user.customer_email || decoded.email || '',
+        phone: user.employee_phone || user.customer_phone || '',
+        membershipLevel: user.membership_level || undefined,
+        avatar: decoded.avatar || undefined,
         position: user.position,
         department: user.department,
       };
